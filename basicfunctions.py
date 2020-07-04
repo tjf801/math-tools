@@ -1,7 +1,7 @@
 """
 assorted widely useful functions on basic types.
 """
-#TODO: maybe rewrite this whole library in C++ to nake sit super fast
+#TODO: maybe rewrite this whole library in C++ to make it super fast
 
 from typing import List
 from functools import reduce

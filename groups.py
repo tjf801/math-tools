@@ -16,7 +16,7 @@ class __ModularRingMetaClass(type):
 	def __eq__(self, other):
 		return self.modulus==other.modulus
 	def __iter__(self):
-		self.iterindex = -1
+		self.iterindex=-1
 		return self
 	def __next__(self):
 		self.iterindex+=1
@@ -65,6 +65,13 @@ class ModularRing(Ring, metaclass=__ModularRingMetaClass):
 	def __repr__(self) -> str:
 		return f"ModularRing[{self.modulus}]({self.value})"
 	
+	def __eq__(self, other) -> bool:
+		if type(other) is ModularRing: return self.value==other.value
+		else: return self.value==other
+	
+	def __neg__(self):
+		return ModularRing(-self.value%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
+	
 	def __add__(self, other):
 		if type(other) is ModularRing:
 			if self.modulus!=other.modulus: raise ValueError
@@ -105,8 +112,6 @@ class ModularRing(Ring, metaclass=__ModularRingMetaClass):
 		else: raise TypeError(f"expected int or Modular Ring Element, not {type(other).__name__}")
 
 if __name__ == "__main__":
-	ModularRing[5](4) # returns 4 mod 5
-	
 	G = ModularRing[7] # the group Z/7Z
 	
 	print([a for a in G])

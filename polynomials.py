@@ -60,12 +60,12 @@ class Polynomial:
 			elif index < 0: raise IndexError('polynomial indices must not be negative')
 			return self.coefficients[-index-1]
 		elif isinstance(index, slice):
-			if index.start < 0: raise IndexError('polynomial indices must not be negative')
-			if index.stop < 0: raise IndexError('polynomial indices must not be negative')
 			start = index.start if index.start is not None else 0
 			stop = index.stop if index.stop is not None else len(self)
 			step = index.step if index.step is not None else 1
-			raise NotImplementedError
+			if start < 0: raise IndexError('polynomial indices must not be negative')
+			if stop < 0: raise IndexError('polynomial indices must not be negative')
+			return Polynomial(*reversed([self[i] for i in (range(start, stop, step) if step>0 else range(stop-1, start-1, step))]))
 		else: raise TypeError("expected polynomial index to be int or slice, not {type.__name__}".format(type=type(index)))
 	
 	def __setitem__(self, index: Union[int, slice], value):
@@ -74,7 +74,13 @@ class Polynomial:
 			if index >= len(self.coefficients): self.coefficients = [0]*(1+index-len(self.coefficients)) + self.coefficients
 			elif index < 0: raise IndexError('polynomial indices must not be negative')
 			self.coefficients[-index-1] = value
-		elif isinstance(index, slice): raise NotImplementedError
+		elif isinstance(index, slice):
+			start = index.start if index.start is not None else 0
+			stop = index.stop if index.stop is not None else len(self)
+			step = index.step if index.step is not None else 1
+			if start < 0: raise IndexError('polynomial indices must not be negative')
+			if stop < 0: raise IndexError('polynomial indices must not be negative')
+			raise NotImplementedError
 		else: raise TypeError("expected polynomial index to be int or slice, not {type.__name__}".format(type=type(index)))
 	
 	def __delitem__(self, index: Union[int, slice]):
@@ -234,10 +240,7 @@ class Polynomial:
 		"""
 		returns the content of the polynomial, or the GCD of all the coefficients.
 		"""
-		coeff = abs(self.coefficients[0])
-		for i in self.coefficients[1:]: coeff = basicfunctions.gcd(coeff, abs(i))
-		if self.leading_coefficent < 0: coeff = -coeff
-		return coeff
+		return basicfunctions.gcd_list(self.coefficients)
 	
 	def primitive_part(self):
 		"""
@@ -357,5 +360,3 @@ if __name__=='__main__':
 	G = ModularRing[7]
 	P = Polynomial(1, 3, 2, type=G)
 	for i in G: print(P(i))
-	
-	
