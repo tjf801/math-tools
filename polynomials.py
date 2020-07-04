@@ -354,9 +354,8 @@ def is_prime(f: Polynomial) -> bool:
 if __name__=='__main__':
 	# ¹²³⁴⁵⁶⁷⁸⁹⁰
 	from groups import ModularRing
-	
 	G = ModularRing[7]
+	P = Polynomial(1, 3, 2, type=G)
+	for i in G: print(P(i))
 	
-	P = Polynomial(G(1), G(3), G(2))
 	
-	print(P(4))

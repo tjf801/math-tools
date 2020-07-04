@@ -1,3 +1,8 @@
+"""
+assorted widely useful functions on basic types.
+"""
+#TODO: maybe rewrite this whole library in C++ to nake sit super fast
+
 from typing import List
 from functools import reduce
 from math import ceil, floor, log2, sqrt

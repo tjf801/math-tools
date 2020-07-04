@@ -1,5 +1,4 @@
 import basicfunctions
-from typing import Union
 
 
 class Group: pass
@@ -9,13 +8,22 @@ class Ring(Group): pass
 class Field(Ring): pass
 
 
-class __ModularMetaClass(type):
+class __ModularRingMetaClass(type):
 	def __str__(self):
 		return f"ModularRing[{self.modulus}]"
 	def __repr__(self):
 		return f"<class 'ModularRing'[{self.modulus}]>"
+	def __eq__(self, other):
+		return self.modulus==other.modulus
+	def __iter__(self):
+		self.iterindex = -1
+		return self
+	def __next__(self):
+		self.iterindex+=1
+		if self.iterindex>=self.modulus: raise StopIteration
+		return self(self.iterindex)
 
-class ModularRing(Ring, metaclass=__ModularMetaClass):
+class ModularRing(Ring, metaclass=__ModularRingMetaClass):
 	"""
 	the Z/nZ Ring.  
 	NOTE: if n is prime, it is a field.
@@ -46,7 +54,7 @@ class ModularRing(Ring, metaclass=__ModularMetaClass):
 		if modulus is not None: self.modulus=modulus; self.__is_field = basicfunctions.is_prime(self.modulus)
 		if __is_field is not None: self.__is_field=__is_field
 		if self.modulus is None: raise ValueError("no modulus supplied for modular group instance")
-		self.value = value
+		self.value = value % self.modulus
 	
 	def __int__(self) -> int:
 		return self.value
@@ -66,18 +74,24 @@ class ModularRing(Ring, metaclass=__ModularMetaClass):
 	def __radd__(self, other):
 		if type(other) is int: return ModularRing((other+self.value)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
 		else: raise TypeError(f"expected int or Modular Ring Element, not {type(other).__name__}")
+	
 	def __sub__(self, other):
 		if type(other) is ModularRing:
 			if self.modulus!=other.modulus: raise ValueError
 			return ModularRing((self.value-other.value)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
 		elif type(other) is int: return ModularRing((self.value-other)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
 		else: raise TypeError(f"expected int or Modular Ring Element, not {type(other).__name__}")
+	def __rsub__(self, other):
+		raise NotImplementedError
 	
 	def __mul__(self, other):
 		if type(other) is ModularRing:
 			if self.modulus!=other.modulus: raise ValueError
 			return ModularRing((self.value*other.value)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
 		elif type(other) is int: return ModularRing((self.value*other)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
+		else: raise TypeError(f"expected int or Modular Ring Element, not {type(other).__name__}")
+	def __rmul__(self, other):
+		if type(other) is int: return ModularRing((other*self.value)%self.modulus, modulus=self.modulus, _ModularRing__is_field=self.__is_field)
 		else: raise TypeError(f"expected int or Modular Ring Element, not {type(other).__name__}")
 	
 	def __div__(self, other):
@@ -95,6 +109,4 @@ if __name__ == "__main__":
 	
 	G = ModularRing[7] # the group Z/7Z
 	
-	a = G(6) # 6 mod 7
-	
-	print(a - 10) # 3 mod 7
+	print([a for a in G])
