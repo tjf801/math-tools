@@ -105,16 +105,11 @@ def φ(n: int) -> int:
 	#O(nlog(n))
 	return sum(gcd(n, i) == 1 for i in range(1, n))
 
-def factorial(n: int) -> int:
-	# O(n)
-	return reduce(lambda x, y: x * y, range(1, n + 1), 1)
-
 def binomial_coefficient(n: int, k: int) -> int:
 	# O(k)
 	if k < 0: return 0
-	total = 1
-	for i in range(1, k+1): total *= (n + 1 - i) / i
-	return int(total)
+	if k == 0: return 1
+	return int(reduce(lambda x, y: x * ((n+1-y)/y), range(1, k+1), 1))
 
 if __name__ == "__main__":
-	pass
+	for x in range(10): print([binomial_coefficient(x, y) for y in range(10)])

@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any
 import builtins
 import basicfunctions
 
@@ -26,12 +26,13 @@ class Polynomial:
 		cls.type = key
 		return cls
 	
-	def __init__(self, *coefficients, type:type=None):
+	def __init__(self, *coefficients, type:type=Any):
 		self.type = type if type is not None else (builtins.type(coefficients[0]) if len(coefficients)>0 else int)
-		for coeff in coefficients:
-			if coeff!=0 and not isinstance(coeff, self.type):
-				try: coeff = self.type(coeff)
-				except: raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))
+		if self.type is not Any:
+			for coeff in coefficients:
+				if coeff!=0 and not isinstance(coeff, self.type):
+					try: coeff = self.type(coeff)
+					except: raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))
 		self.coefficients = list(coefficients)
 	
 	def __str__(self) -> str:
@@ -69,7 +70,7 @@ class Polynomial:
 		else: raise TypeError("expected polynomial index to be int or slice, not {type.__name__}".format(type=type(index)))
 	
 	def __setitem__(self, index: Union[int, slice], value):
-		if not isinstance(value, self.type) and not (self.type in (float, int) and type(value) in (float, int)): raise TypeError('{T} polynomial coefficients must be {T}, not {type}'.format(T=self.type.__name__, type=type(value).__name__))
+		if not self.type is Any and not isinstance(value, self.type) and not (self.type in (float, int) and type(value) in (float, int)): raise TypeError('{T} polynomial coefficients must be {T}, not {type}'.format(T=self.type.__name__, type=type(value).__name__))
 		if isinstance(index, int):
 			if index >= len(self.coefficients): self.coefficients = [0]*(1+index-len(self.coefficients)) + self.coefficients
 			elif index < 0: raise IndexError('polynomial indices must not be negative')
@@ -112,15 +113,16 @@ class Polynomial:
 		if self.type is float:
 			for i, c in enumerate(self):
 				if int(c)==c: self[i]=int(c)
-		if all(type(c) is int for c in self): self.type = int
+		if not self.type is Any and all(type(c) is int for c in self): self.type = int
 		self.coefficients = self.coefficients[-self.degree-1:]
 		return self
 	
 	def cast(self, type:type):
 		if type is list: return [*self.coefficients]
 		elif type is tuple: return tuple([*self.coefficients])
-		try: return Polynomial(*(type(c) for c in self.coefficients))
-		except TypeError: raise TypeError("unable to cast {type1.__name__} polynomial to {type2.__name__} polynomial".format(type1=self.type, type2=type))
+		if not type is Any:
+			try: return Polynomial(*(type(c) for c in self.coefficients))
+			except TypeError: raise TypeError("unable to cast {type1.__name__} polynomial to {type2.__name__} polynomial".format(type1=self.type, type2=type))
 	
 	def __bool__(self) -> bool:
 		return not (self.degree == 0 and self[0] == 0)
@@ -223,11 +225,11 @@ class Polynomial:
 	def __rmod__(self, other):
 		return divmod(Polynomial(other), self)[1]
 	
-	def __pow__(self, other: int, modulo=None):
+	def __pow__(self, other: int, modulo:Polynomial=None):
 		if type(other) is not int: raise TypeError
-		if modulo is not None: raise NotImplementedError #TODO
+		if modulo is not None and type(modulo) is not Polynomial: modulo = Polynomial(modulo)
 		P = Polynomial(1)
-		for _ in range(other): P = P * self
+		for _ in range(other): P = P*self if modulo is not None else P*self % modulo
 		return P
 	
 	def __call__(self, argument):
@@ -257,7 +259,7 @@ def termwise_GCF(f: Polynomial) -> Polynomial:
 	
 	for i, c in enumerate(f):
 		if c != 0: break
-	GCF = Polynomial()
+	GCF = Polynomial(type=f.type)
 	GCF[i] = f.content()
 	return GCF
 
@@ -360,3 +362,5 @@ if __name__=='__main__':
 	G = ModularRing[7]
 	P = Polynomial(1, 3, 2, type=G)
 	for i in G: print(P(i))
+	
+	print(Polynomial(1, 1)**4)
