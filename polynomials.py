@@ -157,12 +157,12 @@ class Polynomial:
 	def __neg__(self):
 		return Polynomial(*reversed([-a for a in self]))
 	
-	def __lshift__(self, num_places:int):
+	def __lshift__(self, num_places: int):
 		if not isinstance(num_places, int): raise TypeError('expected integer value in polynomial left shift')
 		if num_places<0: return self>>-num_places
 		return Polynomial(*(self.coefficients + [0]*num_places))
 	
-	def __rshift__(self, num_places:int):
+	def __rshift__(self, num_places: int):
 		if not isinstance(num_places, int): raise TypeError('expected integer value in polynomial right shift')
 		if num_places==0: return self.copy()
 		elif num_places<0: return self<<-num_places
@@ -250,6 +250,8 @@ class Polynomial:
 		(The polynomial divided by its content)
 		"""
 		return self//self.content()
+
+
 
 def termwise_GCF(f: Polynomial) -> Polynomial:
 	"""
@@ -348,7 +350,7 @@ def square_free_factor(f: Polynomial) -> Tuple[List[Polynomial], Polynomial]:
 	
 	return factors, leftover
 
-def is_prime(f: Polynomial) -> bool:
+def is_prime(f: Polynomial[int]) -> bool:
 	"""
 	returns True if the given polynomial is irreducible over the integers.
 	
@@ -358,9 +360,7 @@ def is_prime(f: Polynomial) -> bool:
 
 if __name__=='__main__':
 	# ¹²³⁴⁵⁶⁷⁸⁹⁰
-	from groups import ModularRing
-	G = ModularRing[7]
-	P = Polynomial(1, 3, 2, type=G)
-	for i in G: print(P(i))
+	from matrices import Matrix
 	
-	print(Polynomial(1, 1)**4)
+	M = Matrix([[Polynomial(1), Polynomial(1, 0, 0), Polynomial(1, 0)], [Polynomial(0), Polynomial(2, 0), Polynomial(2)], [Polynomial(3, 2), Polynomial(1, 0, -1), Polynomial(0)]], type=Polynomial[int])
+	
