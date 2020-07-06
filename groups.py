@@ -21,9 +21,9 @@ class Group(metaclass=GroupMetaClass):
 	"""
 	Base class for all group objects.  
 	Subclasses should implement:  
-		Equality testing 		(__eq__, ==)   
-		Multiplication			(__mul__, *)  
-		Multiplicative Inverse	(__invert__, ~)  
+		Equality testing        (__eq__, ==)   
+		Multiplication          (__mul__, *)  
+		Multiplicative Inverse  (__invert__, ~)  
 	Any other extra methods are optional.
 	"""
 	def __eq__(self, other) -> bool:
@@ -57,10 +57,10 @@ class Ring(metaclass=RingMetaClass):
 	"""
 	Base class for all ring objects.  
 	Subclasses should implement:  
-		Equality testing 		(__eq__, ==)  
-		Additive Inverse		(__neg__, -)  
-		Addition				(__add__, +)  
-		Multiplication			(__mul__, *)  
+		Equality testing        (__eq__, ==)  
+		Additive Inverse        (__neg__, -)  
+		Addition                (__add__, +)  
+		Multiplication          (__mul__, *)  
 	Any other extra methods are optional, and subtraction is already implimented as adding its inverse.
 	
 	NOTE: in order to be used as an argument to a Polynomial object, it must impliment __pow__, with the second argument as an integer. (repeated multiplication works fine for this purpose.)
@@ -100,11 +100,11 @@ class Field(Ring, metaclass=FieldMetaClass):
 	"""
 	Base class for all field objects.  
 	Subclasses should implement:  
-		Equality testing 		(__eq__, ==)  
-		Additive Inverse		(__neg__, -)  
-		Multiplicative Inverse	(__invert__, ~)  
-		Addition				(__add__, +)  
-		Multiplication			(__mul__, *)  
+		Equality testing        (__eq__, ==)  
+		Additive Inverse        (__neg__, -)  
+		Multiplicative Inverse  (__invert__, ~)  
+		Addition                (__add__, +)  
+		Multiplication          (__mul__, *)  
 	Any other extra methods are optional, and subtraction and division are already implimented as adding/multiplying by their inverses.
 	
 	NOTE:
