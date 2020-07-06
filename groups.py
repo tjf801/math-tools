@@ -272,7 +272,7 @@ class F4(Field, metaclass=__F4MetaClass):
 		return F4(lst[lst.index(self.value) + lst.index(other.value)])
 	def __mul__(self, other):
 		prod = 'OIAB'.index(self.value) * 'OIAB'.index(other.value)
-		return F4('OIABBXIXXA'[prod])
+		return F4('OIABBXI'[prod % 7])
 
 
 def test_group_axioms(group: Group):
