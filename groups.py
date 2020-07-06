@@ -260,9 +260,9 @@ class F4(Field, metaclass=__F4MetaClass):
 	def __repr__(self):
 		return f"F4('{self.value}')"
 	def __eq__(self, other) -> bool:
-		return self.value==other.value
+		return self.value == other.value
 	def __neg__(self):
-		return F4(self.value)
+		return self
 	def __invert__(self):
 		if self == self.__class__.additive_identity: raise ZeroDivisionError
 		return F4({'O':None, 'I':'I', 'A':'B', 'B':'A'}[self.value])
