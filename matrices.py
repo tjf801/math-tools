@@ -11,6 +11,15 @@ class Matrix:
 		cls.type = key
 		return cls
 	
+	@classmethod
+	def Identity(cls, size: int):
+		return cls([[int(i==j) for j in range(size)] for i in range(size)])
+	
+	@classmethod
+	def NullMatrix(cls, size: Union[Tuple[int], int]):
+		if type(size) is tuple: return cls([[0 for _ in range(size[1])] for _ in range(size[0])])
+		else: return cls([[0 for _ in range(size)] for _ in range(size)])
+	
 	def __init__(self, value: Union[List, Tuple], type:type=Any):
 		"""
 		Creates a matrix, either from a list of its values, or a list of its dimensions.
@@ -27,13 +36,12 @@ class Matrix:
 			self.list = [[0 for _ in range(value[1])] for _ in range(value[0])]
 			self.type = type
 			self.rows, self.columns = value[0], value[1]
-			self.is_square = self.rows==self.columns
 		else:
-			if not all(isinstance(l, (list, tuple)) for l in value): raise TypeError("expected a list of lists for matrix creation")
+			if not all(isinstance(l, (list, tuple)) for l in value) and not len(value)==0: raise TypeError("expected a list of lists for matrix creation")
 			self.list = value
 			self.type = type
 			num_rows = len(self.list)
-			num_columns = len(self.list[0])
+			num_columns = len(self.list[0]) if num_rows > 0 else 0
 			for i in self.list:
 				if len(i)!=num_columns: raise ValueError("attempted to use a non-rectangular matrix")
 			if self.type is not Any:
@@ -43,11 +51,14 @@ class Matrix:
 							try: item = self.type(item)
 							except: raise TypeError(f"{item} is not of type {self.type.__name__}")
 			self.rows, self.columns = num_rows, num_columns
-			self.is_square = self.rows==self.columns
 	
 	@property
-	def dimensions(self) -> tuple:
+	def dimensions(self) -> Tuple[int]:
 		return (self.rows, self.columns)
+	
+	@property
+	def is_square(self) -> bool:
+		return self.rows==self.columns
 	
 	def copy(self):
 		"""
@@ -65,10 +76,42 @@ class Matrix:
 		return self.list
 	
 	def __getitem__(self, indices:Union[Tuple[int], Tuple[slice]]):
-		if isinstance(indices[0], int):
+		if isinstance(indices[0], int) and isinstance(indices[1], int):
 			return self.list[indices[0]][indices[1]]
-		elif isinstance(indices[0], slice):
-			raise NotImplementedError #TODO
+		elif isinstance(indices[0], slice) or isinstance(indices[1], slice):
+			if isinstance(indices[0], slice):
+				row_start = indices[0].start
+				row_stop = indices[0].stop
+				row_step = indices[0].step
+			elif isinstance(indices[0], int):
+				row_start = indices[0]
+				row_stop = indices[0]+1
+				row_step = 1
+			else: raise TypeError
+			if isinstance(indices[1], slice):
+				column_start = indices[1].start
+				column_stop = indices[1].stop
+				column_step = indices[1].step
+			elif isinstance(indices[1], int):
+				column_start = indices[1]
+				column_stop = indices[1]+1
+				column_step = 1
+			else: raise TypeError
+			
+			if row_step is None: row_step = 1
+			if column_step is None: column_step = 1
+			if row_start is None: row_start = 0 if row_step>0 else self.dimensions[0]-1
+			if row_stop is None: row_stop = self.dimensions[0] if row_step>0 else -1
+			if column_start is None: column_start = 0 if column_step>0 else self.dimensions[1]-1
+			if column_stop is None: column_stop = self.dimensions[1] if column_step>0 else -1
+			
+			A = Matrix((abs(row_stop-row_start), abs(column_stop-column_start)))
+			
+			for i in range(row_start, row_stop, row_step):
+				for j in range(column_start, column_stop, column_step):
+					A[abs(i-row_start), abs(j-column_start)] = self[i,j]
+			
+			return A
 		else: raise TypeError(f"Matrix indices must be integers or slices, not {type(indices[0].__name__)}")
 	
 	def __setitem__(self, indices:Tuple[int], value):
@@ -120,7 +163,7 @@ class Matrix:
 	
 	def diagonal_product(self):
 		"""returns the product of the main diagonal of a matrix. used when computing the determinant."""
-		return reduce(lambda x, y: x*y, [self[i,i] for i in range(min(self.dimensions))])
+		return reduce(lambda x, y: x*y, [self[i,i] for i in range(min(self.dimensions))], 1)
 	
 	def trace(self):
 		"""computes the diagonal sum of a given matrix. also the sum of the eigenvalues of the matrix."""
@@ -192,7 +235,28 @@ class Matrix:
 	def nullity(self) -> int:
 		"""returns the nullity of the matrix."""
 		return sum(self.reduced_row_echelon_form().is_zero_row(i) for i in range(self.rows))
+	
+	def inverse(self):
+		if self.is_square: return self.augment(Matrix.Identity(self.dimensions[0])).reduced_row_echelon_form()[:,self.dimensions[0]:]
+		else: raise ValueError("TODO: find pseudoinverses of nonsquare matrices")
+	
+	def minor_matrix(self, row: int, column: int):
+		"""returns a matrix without given row and column."""
+		return Matrix([row[:column] + row[column+1:] for row in (self.list[:row]+self.list[row+1:])])
+	
+	def cofactor(self, row: int, column: int):
+		"""returns the cofactor for a given row and column."""
+		return ((-1)**(row+column)) * self.minor_matrix(row, column).determinant()
+	
+	def cofactor_matrix(self):
+		"""returns the cofactor matrix for a given matrix."""
+		return Matrix([[self.cofactor(i, j) for j in range(self.columns)] for i in range(self.rows)])
+	
+	def transpose(self):
+		"""returns the transpose matrix of given matrix."""
+		return Matrix([[self[j,i] for j in range(self.columns)] for i in range(self.rows)])
+	
 
 if __name__=='__main__':
-	A = Matrix([[-7 , -1 , -5 , 2], [10 , -3 , -8 , 10], [-2 , -10 , 1 , 2]], type=int)
-	print(A.reduced_row_echelon_form())
+	A = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]], type=int)
+	print(A)
