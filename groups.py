@@ -63,7 +63,8 @@ class Ring(metaclass=RingMetaClass):
 		Multiplication          (__mul__, *)  
 	Any other extra methods are optional, and subtraction is already implimented as adding its inverse.
 	
-	NOTE: in order to be used as an argument to a Polynomial object, it must impliment __pow__, with the second argument as an integer. (repeated multiplication works fine for this purpose.)
+	NOTE: in order to be used as an argument to a Polynomial object, it must impliment __pow__, with the second argument as an integer.
+	      (repeated multiplication works fine for this purpose.)
 	"""
 	def __eq__(self, other) -> bool:
 		raise NotImplementedError
@@ -109,7 +110,8 @@ class Field(Ring, metaclass=FieldMetaClass):
 	
 	NOTE:
 	1. __inverse__ should raise a ZeroDivisionError on the additive identity of the field.  
-	2. in order to be used as an argument to a Polynomial object, it must impliment __pow__, with the second argument as an integer. (repeated multiplication works fine for this purpose.)
+	2. in order to be used as an argument to a Polynomial object, it must impliment __pow__, with the second argument as an integer.
+	   (repeated multiplication works fine for this purpose.)
 	"""
 	def __eq__(self, other) -> bool:
 		raise NotImplementedError
@@ -260,24 +262,17 @@ class F4(Field, metaclass=__F4MetaClass):
 	def __eq__(self, other) -> bool:
 		return self.value==other.value
 	def __neg__(self):
-		return F4({'O':'O', 'I':'I', 'A':'A', 'B':'B'}[self.value])
+		return F4(self.value)
 	def __invert__(self):
-		if self==self.__class__.additive_identity: raise ZeroDivisionError
+		if self == self.__class__.additive_identity: raise ZeroDivisionError
 		return F4({'O':None, 'I':'I', 'A':'B', 'B':'A'}[self.value])
 	def __add__(self, other):
-		return F4({
-			'O': {'O':'O', 'I':'I', 'A':'A', 'B':'B'},
-			'I': {'O':'I', 'I':'O', 'A':'B', 'B':'A'},
-			'A': {'O':'A', 'I':'B', 'A':'O', 'B':'I'},
-			'B': {'O':'B', 'I':'A', 'A':'I', 'B':'O'}
-		}[self.value][other.value])
+		if self.value == other.value: return F4('O')
+		lst = 'OXIABBAI'
+		return F4(lst[lst.index(self.value) + lst.index(other.value)])
 	def __mul__(self, other):
-		return F4({
-			'O': {'O':'O', 'I':'O', 'A':'O', 'B':'O'},
-			'I': {'O':'O', 'I':'I', 'A':'A', 'B':'B'},
-			'A': {'O':'O', 'I':'A', 'A':'B', 'B':'I'},
-			'B': {'O':'O', 'I':'B', 'A':'I', 'B':'A'}
-		}[self.value][other.value])
+		prod = 'OIAB'.index(self.value) * 'OIAB'.index(other.value)
+		return F4('OIABBXIXXA'[prod])
 
 
 def test_group_axioms(group: Group):
