@@ -8,25 +8,19 @@ from functools import reduce
 from math import ceil, floor, log2, sqrt
 
 def gcd(a: int, b: int) -> int:
-	# O(log(a)+log(b))
-	if a<0 or b<0:
-		raise ValueError("arguments to gcd() cannot be less than 0")
-	while True:
-		if a==0:
-			return b
-		if b==0:
-			return a
-		if a > b:
-			a = a % b
-		else:
-			b = b % a
+    # O(log(a)+log(b))
+    if a < 0 or b < 0:
+        raise ValueError("arguments to gcd() cannot be less than 0")
+    if a + b in [a, b]:
+        return a + b
+    return gcd(a % b, b) if a > b else gcd(a, b % a)
 
 def gcd_list(l: List[int]) -> int:
 	return reduce(gcd, l)
 
 def lcm(a: int, b: int) -> int:
 	# O(log(a)+log(b))
-	return int((a * b) / gcd(a, b))
+	return (a * b) // gcd(a, b)
 
 def prime_factors(n: int) -> list:
 	# O(n)
@@ -42,11 +36,7 @@ def prime_factors(n: int) -> list:
 
 def factors(n: int) -> list:
 	# O(n)
-	factors = []
-	for i in range(1, n+1):
-		if n%i==0:
-			factors.append(i)
-	return factors
+	return [i for i in range(1, n + 1) if not n % i]
 
 def is_perfect_power(n: int) -> bool:
 	"""
@@ -57,8 +47,8 @@ def is_perfect_power(n: int) -> bool:
 	"""
 	# O(log(n))
 	for i in range(2, ceil(log2(n))+1): 
-		root = n ** (1/i)
-		if round(root)==root: return True
+		if not n ** (1 / i) % 1:
+			return True
 	return False
 
 def is_prime(n: int) -> bool:
@@ -68,9 +58,9 @@ def is_prime(n: int) -> bool:
 	Complexity: O(log(n)^7)
 	"""
 	
-	if n==2: return True
+	if n == 2: return True
 	
-	if n%2==0: return False
+	if n % 2 == 0: return False
 	
 	if is_perfect_power(n): return False
 	
@@ -113,19 +103,17 @@ def is_prime(n: int) -> bool:
 
 def φ(n: int) -> int:
 	#O(nlog(n))
-	return sum(gcd(n, i)==1 for i in range(1, n))
+	return sum(gcd(n, i) == 1 for i in range(1, n))
 
 def factorial(n: int) -> int:
 	# O(n)
-	total = 1
-	for _ in range(1, n+1): total *= n
-	return total
+	return reduce(lambda x, y: x * y, range(1, n + 1), 1)
 
 def binomial_coefficient(n: int, k: int) -> int:
 	# O(k)
 	if k < 0: return 0
 	total = 1
-	for i in range(1, k+1): total *= (n+1-i)/i
+	for i in range(1, k+1): total *= (n + 1 - i) / i
 	return int(total)
 
 if __name__ == "__main__":
