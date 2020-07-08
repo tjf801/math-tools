@@ -256,7 +256,33 @@ class Matrix:
 		"""returns the transpose matrix of given matrix."""
 		return Matrix([[self[j,i] for j in range(self.columns)] for i in range(self.rows)])
 	
+	def __add__(self, other):
+		if self.dimensions != other.dimensions: raise ValueError(f"matrices do not have same dimensions [{self.dimensions} and {other.dimensions}]")
+		return Matrix([[self[i,j]+other[i,j] for j in range(self.columns)] for i in range(self.rows)], type=self.type if self.type is other.type else Any)
+	
+	def __sub__(self, other):
+		if self.dimensions != other.dimensions: raise ValueError(f"matrices do not have same dimensions [{self.dimensions} and {other.dimensions}]")
+		return Matrix([[self[i,j]-other[i,j] for j in range(self.columns)] for i in range(self.rows)], type=self.type if self.type is other.type else Any)
+	
+	def __mul__(self, other):
+		if isinstance(other, Matrix):
+			if self.columns != other.rows: raise ValueError(f"matrices do not have correct dimensions [{self.dimensions} and {other.dimensions}]")
+			return Matrix([[sum(self[i,n]*other[n,j] for n in range(self.columns)) for j in range(other.columns)] for i in range(self.rows)], type=self.type if self.type is other.type else Any)
+		else: return Matrix([[self[i,j]*other for j in range(self.columns)] for i in range(self.rows)], type=self.type)
+	def __rmul__(self, other):
+		return Matrix([[other*self[i,j] for j in range(self.columns)] for i in range(self.rows)], type=self.type)
+	
+	def __pow__(self, other: int):
+		#TODO: convert to eigenbasis and then do power and then go back, much faster
+		if not self.is_square: raise ValueError("cannot raise nonsquare matrices to a power")
+		A = Matrix.Identity(self.dimensions[0])
+		for _ in range(other): A = A * self
+		return A
+	
+	def eigenvalues(self) -> List:
+		raise NotImplementedError
 
 if __name__=='__main__':
-	A = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]], type=int)
-	print(A)
+	A = Matrix([[3, 1], [0, 2]], type=int)
+	B = Matrix([[2, 0], [0, 2]], type=int)
+	print(A.eigenvalues())
