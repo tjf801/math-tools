@@ -1,5 +1,6 @@
 from typing import Union, List, Tuple, Any
 from functools import reduce
+from polynomials import Polynomial
 
 class Matrix:
 	"""
@@ -169,10 +170,9 @@ class Matrix:
 		"""computes the diagonal sum of a given matrix. also the sum of the eigenvalues of the matrix."""
 		return reduce(lambda x, y: x+y, [self[i,i] for i in range(min(self.dimensions))])
 	
-	def __row_echelon_determinant(self):
+	def __row_echelon_determinant(self) -> Tuple:
 		"""
-		returns the row-echelon form and determinant of a given matrix.
-		if return_determinant is True, it returns the determinant of the matrix instead, because it uses the exact same algorithm.
+		returns the row-echelon form and determinant of the matrix.
 		"""
 		A = self.copy()
 		d = 1
@@ -183,7 +183,7 @@ class Matrix:
 				for r in range(i, A.columns):
 					if A[i,r]!=0:
 						A.swap(i, r)
-						d *= -1
+						d*=-1
 						break
 			
 			# gets leftmost nonzero column
@@ -194,7 +194,7 @@ class Matrix:
 					break
 			if column is None: break
 			
-			d *= A[i, column]
+			d*=A[i, column]
 			A.list[i] = [num/A[i, column] for num in A.list[i]] # god i fucking hate floats
 			
 			for i2 in range(i+1, A.rows):
@@ -206,7 +206,7 @@ class Matrix:
 					for j in range(A.columns): A[i,j]=int(A[i,j])
 		except TypeError: pass
 		
-		return A, d * A.diagonal_product()
+		return A, A.diagonal_product()*d
 	
 	def row_echelon_form(self):
 		return self.__row_echelon_determinant()[0]
@@ -226,7 +226,7 @@ class Matrix:
 		return A
 	
 	def determinant(self):
-		return int(self.__row_echelon_determinant()[1]) if self.type is int else self.__row_echelon_determinant()[1]
+		return self.__row_echelon_determinant()[1]
 	
 	def rank(self) -> int:
 		"""returns the rank of the matrix."""
@@ -279,10 +279,20 @@ class Matrix:
 		for _ in range(other): A = A * self
 		return A
 	
-	def eigenvalues(self) -> List:
+	def characteristic_polynomial(self) -> Polynomial:
+		raise NotImplementedError
+	
+	def eigenvalues(self) -> Tuple:
+		return self.characteristic_polynomial().solve()
+	
+	def eigenvectors(self) -> List:
+		raise NotImplementedError
+	
+	def eigenpairs(self):
 		raise NotImplementedError
 
 if __name__=='__main__':
-	A = Matrix([[3, 1], [0, 2]], type=int)
-	B = Matrix([[2, 0], [0, 2]], type=int)
-	print(A.eigenvalues())
+	A = Matrix([[3, 1, 4], [1, 5, 9], [2, 6, 5]], type=int)
+	B = Matrix([[2, 0], [0, 3]], type=int)
+	
+	print(A.characteristic_polynomial())

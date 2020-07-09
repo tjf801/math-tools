@@ -27,12 +27,13 @@ class Polynomial:
 		return cls
 	
 	def __init__(self, *coefficients, type:type=Any):
-		self.type = type if type is not None else (builtins.type(coefficients[0]) if len(coefficients)>0 else int)
+		self.type = type if type is not Any else (builtins.type(coefficients[0]) if len(coefficients)>0 else int) if len(coefficients)>0 else Any
 		if self.type is not Any:
 			for coeff in coefficients:
-				if coeff!=0 and not isinstance(coeff, self.type):
-					try: coeff = self.type(coeff)
-					except: raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))
+				try:
+					if coeff!=0 and not isinstance(coeff, self.type):
+						coeff = self.type(coeff)
+				except TypeError: self.type = Any #raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))
 		self.coefficients = list(coefficients)
 	
 	def __str__(self) -> str:
@@ -43,8 +44,8 @@ class Polynomial:
 		
 		string = ""
 		for i, c in reversed(list(enumerate(reversed(self.coefficients)))):
-			string += (('+' if i!=d else '') if type(c) in (int, float) and c >= 0 else '-') if c!=0 else ''
-			if c not in (1, 0, -1) or i==0: string+=str(c)if string=='' or string[-1]!='-'else str(abs(c))
+			string += ((('+' if i!=d else '') if c >= 0 else '-') if type(c) in (int, float) else '+') if c!=0 else ''
+			if c not in (1, 0, -1) or i==0: string+=str(c)if string=='' or string[-1]!='-'else str(abs(c)) if type(c) in (int, float) else str(c)
 			if i!=0 and c!=0: string+='x'
 			if i not in (0, 1) and c!=0: string+=get_superscript(i)
 		return string
@@ -53,7 +54,7 @@ class Polynomial:
 		# PEP 3140 should be a thing, why the f**k was it rejected???
 		# because it isn't, this returns the repr of all the coefficients, and looks ugly as F**K for non-int/float polynomials
 		# HURR DURR Polynomial<TestType>(<__main__.TestType object at 0x0000028C6C68C700>, <__main__.TestType object at 0x0000028C6C68C970>, <__main__.TestType object at 0x0000028C6C68C6A0>)
-		return 'Polynomial<{type.__name__}>{!s}'.format(tuple(self.coefficients), type=self.type)
+		return f"Polynomial{'<' + self.type.__name__ + '>' if self.type is not Any else ''}{str(tuple(self.coefficients))}"
 	
 	def __getitem__(self, index: Union[int, slice]):
 		if isinstance(index, int):
@@ -220,12 +221,22 @@ class Polynomial:
 	def __rfloordiv__(self, other):
 		return divmod(Polynomial[other], self)[0]
 	
+	def __truediv__(self, other):
+		if type(other) is Polynomial:
+			if other.degree == 0: return Polynomial(*reversed([c/other[0] for c in self]))
+			else: raise ValueError("cannot divide by non constant poynomial")
+		else: return Polynomial(*reversed([c/other for c in self]))
+	def __rtruediv__(self, other):
+		if self.degree == 0:
+			raise NotImplementedError
+		else: raise ValueError("cannot divide by non constant poynomial")
+	
 	def __mod__(self, other):
 		return divmod(self, other)[1]
 	def __rmod__(self, other):
 		return divmod(Polynomial(other), self)[1]
 	
-	def __pow__(self, other: int, modulo:Polynomial=None):
+	def __pow__(self, other: int, modulo=None):
 		if type(other) is not int: raise TypeError
 		if modulo is not None and type(modulo) is not Polynomial: modulo = Polynomial(modulo)
 		P = Polynomial(1)
@@ -250,7 +261,20 @@ class Polynomial:
 		(The polynomial divided by its content)
 		"""
 		return self//self.content()
-
+	
+	def solve(self) -> Tuple:
+		"""
+		returns the roots of the polynomial.
+		"""
+		if self.degree==0:
+			return ()
+		elif self.degree==1:
+			a, b = self[1], self[0]
+			return (-b/a)
+		elif self.degree==2:
+			a, b, c = self[2], self[1], self[0]
+			return ((-b+(b**2-4*a*c)**0.5)/(2*a), (-b-(b**2-4*a*c)**0.5)/(2*a))
+		raise NotImplementedError #TODO: maybe use newton's method? but how do i get ALL roots?
 
 
 def termwise_GCF(f: Polynomial) -> Polynomial:
@@ -360,7 +384,5 @@ def is_prime(f: Polynomial[int]) -> bool:
 
 if __name__=='__main__':
 	# ¹²³⁴⁵⁶⁷⁸⁹⁰
-	from matrices import Matrix
-	
-	M = Matrix([[Polynomial(1), Polynomial(1, 0, 0), Polynomial(1, 0)], [Polynomial(0), Polynomial(2, 0), Polynomial(2)], [Polynomial(3, 2), Polynomial(1, 0, -1), Polynomial(0)]], type=Polynomial[int])
-	
+	P = Polynomial(1, 2, 3, 4)
+	print(P/5)
