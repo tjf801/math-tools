@@ -1,6 +1,7 @@
 from typing import Union, List, Tuple, Any
 from functools import reduce
 from polynomials import Polynomial
+from fractions import Fraction
 
 class Matrix:
 	"""
@@ -10,6 +11,7 @@ class Matrix:
 	def __class_getitem__(cls, key:type):
 		if type(key) is not type: raise TypeError("Parameters to generic types must be types. Got {thing}.".format(thing=key))
 		cls.type = key
+		raise NotImplementedError
 		return cls
 	
 	@classmethod
@@ -47,9 +49,9 @@ class Matrix:
 				if len(i)!=num_columns: raise ValueError("attempted to use a non-rectangular matrix")
 			if self.type is not Any:
 				for row in self.list:
-					for item in row:
-						if item!=0 and not isinstance(item, self.type):
-							try: item = self.type(item)
+					for i, item in enumerate(row):
+						if item!=0:
+							try: row[i] = self.type(item)
 							except: raise TypeError(f"{item} is not of type {self.type.__name__}")
 			self.rows, self.columns = num_rows, num_columns
 	
@@ -226,7 +228,32 @@ class Matrix:
 		return A
 	
 	def determinant(self):
-		return self.__row_echelon_determinant()[1]
+		if any(isinstance(self[i,j], Polynomial) for i in range(self.rows) for j in range(self.columns)):
+			#TODO: if the polynomial has floats, the tiny errors grow huge and destroy the whole thing.
+			A = self.copy()
+			d = 1
+			
+			i, j, m, n = 0, 0, A.columns, A.rows
+			
+			while i < m and j < n:
+				if all(A[k,j]==0 for k in range(i, m)): j = j + 1
+				else:
+					while not all(A[k,j]==0 for k in range(i+1, m)):
+						#get minimal degree polynomial in column
+						min_deg = float('inf')
+						addr = None
+						for k in range(i, m):
+							if A[k,j].degree <= min_deg:
+								min_deg, addr = A[k,j].degree, k
+						
+						if i != addr: A.swap(i, addr); d = -d
+						
+						for k in range(i+1, A.rows): A.add_multiply_two_rows(k, j, -A[k,j]//A[j,j])
+					
+					i, j = i+1, j+1
+			
+			return A.diagonal_product() * d
+		else: return self.__row_echelon_determinant()[1]
 	
 	def rank(self) -> int:
 		"""returns the rank of the matrix."""
@@ -280,7 +307,7 @@ class Matrix:
 		return A
 	
 	def characteristic_polynomial(self) -> Polynomial:
-		raise NotImplementedError
+		return (self.cast(Polynomial[Fraction])-Matrix.Identity(self.dimensions[0])*Polynomial(1,0)).determinant()
 	
 	def eigenvalues(self) -> Tuple:
 		return self.characteristic_polynomial().solve()
@@ -292,7 +319,7 @@ class Matrix:
 		raise NotImplementedError
 
 if __name__=='__main__':
-	A = Matrix([[3, 1, 4], [1, 5, 9], [2, 6, 5]], type=int)
-	B = Matrix([[2, 0], [0, 3]], type=int)
 	
-	print(A.characteristic_polynomial())
+	A = Matrix([[3, 2], [4, 1]])
+	
+	print(A.characteristic_polynomial(), A.eigenvalues())

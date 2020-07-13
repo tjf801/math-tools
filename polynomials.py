@@ -1,8 +1,15 @@
 from typing import Union, List, Tuple, Any
-import builtins
+import builtins, inspect
 import basicfunctions
 
-class Polynomial:
+class __PolynomialMetaClass(type):
+	def __getitem__(cls, key: type):
+		# called when you do something like Polynomial[float]
+		if not inspect.isclass(key): raise TypeError("Parameters to generic types must be types. Got {thing}.".format(thing=key))
+		class TypedPolynomial(cls): type = key
+		return TypedPolynomial
+
+class Polynomial(metaclass=__PolynomialMetaClass):
 	"""
 	TODO: finish doc
 	coefficient objects must have:
@@ -20,21 +27,19 @@ class Polynomial:
 			also scalar multiplication for derivative
 	"""
 	
-	def __class_getitem__(cls, key:type):
-		# called when you do something like Polynomial[float]
-		if type(key) is not type: raise TypeError("Parameters to generic types must be types. Got {thing}.".format(thing=key))
-		cls.type = key
-		return cls
+	type = Any
 	
 	def __init__(self, *coefficients, type:type=Any):
-		self.type = type if type is not Any else (builtins.type(coefficients[0]) if len(coefficients)>0 else int) if len(coefficients)>0 else Any
+		self.type = type if type is not Any else self.type
+		if len(coefficients)==1 and isinstance(coefficients[0], Polynomial): self.coefficients = coefficients[0].coefficients
+		else: self.coefficients = list(coefficients)
 		if self.type is not Any:
-			for coeff in coefficients:
-				try:
-					if coeff!=0 and not isinstance(coeff, self.type):
-						coeff = self.type(coeff)
-				except TypeError: self.type = Any #raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))
-		self.coefficients = list(coefficients)
+			for i, coeff in enumerate(self.coefficients):
+				try: self.coefficients[i] = self.type(coeff) if coeff != 0 else coeff
+				except TypeError: self.type = Any #raise TypeError('coefficient {c} is not of type {type}'.format(c=coeff, type=self.type.__name__))\
+			if self.type is not Any:
+				try: assert(all(isinstance(c, self.type) or c==0 for c in self.coefficients)) #if this fails, I done fucked up (and its not your fault)
+				except AssertionError as ಠ_ಠ: print(self.type, [(c, self.type(c), isinstance(c, self.type)) for c in self.coefficients]); raise ಠ_ಠ
 	
 	def __str__(self) -> str:
 		# ¹²³⁴⁵⁶⁷⁸⁹⁰
@@ -44,8 +49,8 @@ class Polynomial:
 		
 		string = ""
 		for i, c in reversed(list(enumerate(reversed(self.coefficients)))):
-			string += ((('+' if i!=d else '') if c >= 0 else '-') if type(c) in (int, float) else '+') if c!=0 else ''
-			if c not in (1, 0, -1) or i==0: string+=str(c)if string=='' or string[-1]!='-'else str(abs(c)) if type(c) in (int, float) else str(c)
+			string += ((('+' if i!=d else '') if c>=0 else '-') if type(c) in (int, float) else (('+' if i!=d else '') if c!=-1 else '-')) if c not in (0,) else ''
+			if c not in (1, 0, -1) or (i==0 and c in (1, -1)) or (d==0): string+= str(abs(c)) if type(c) in (int, float) else (str(c) if string=='' else (str(-c) if string[-1]=='-' else str(c)))
 			if i!=0 and c!=0: string+='x'
 			if i not in (0, 1) and c!=0: string+=get_superscript(i)
 		return string
@@ -54,6 +59,7 @@ class Polynomial:
 		# PEP 3140 should be a thing, why the f**k was it rejected???
 		# because it isn't, this returns the repr of all the coefficients, and looks ugly as F**K for non-int/float polynomials
 		# HURR DURR Polynomial<TestType>(<__main__.TestType object at 0x0000028C6C68C700>, <__main__.TestType object at 0x0000028C6C68C970>, <__main__.TestType object at 0x0000028C6C68C6A0>)
+		# return str(self)
 		return f"Polynomial{'<' + self.type.__name__ + '>' if self.type is not Any else ''}{str(tuple(self.coefficients))}"
 	
 	def __getitem__(self, index: Union[int, slice]):
@@ -114,7 +120,7 @@ class Polynomial:
 		if self.type is float:
 			for i, c in enumerate(self):
 				if int(c)==c: self[i]=int(c)
-		if not self.type is Any and all(type(c) is int for c in self): self.type = int
+		#if self.type is not Any and all(isinstance(c, int) for c in self): self.type = int
 		self.coefficients = self.coefficients[-self.degree-1:]
 		return self
 	
@@ -144,6 +150,7 @@ class Polynomial:
 	
 	def __eq__(self, other) -> bool:
 		if isinstance(other, (list, tuple)): other = Polynomial(*other)
+		elif self.degree != 0 and not isinstance(other, Polynomial): return False
 		elif not isinstance(other, Polynomial): other = Polynomial(other)
 		return all(self[i]==other[i] for i in range(max(len(self), len(other))))
 	
@@ -161,7 +168,8 @@ class Polynomial:
 	def __lshift__(self, num_places: int):
 		if not isinstance(num_places, int): raise TypeError('expected integer value in polynomial left shift')
 		if num_places<0: return self>>-num_places
-		return Polynomial(*(self.coefficients + [0]*num_places))
+		try: return Polynomial(*(self.coefficients + [self.type(0)]*num_places))
+		except TypeError: return Polynomial(*(self.coefficients + [0]*num_places))
 	
 	def __rshift__(self, num_places: int):
 		if not isinstance(num_places, int): raise TypeError('expected integer value in polynomial right shift')
@@ -202,7 +210,7 @@ class Polynomial:
 	def __divmod__(self, other)->tuple:
 		if not isinstance(other, Polynomial): other = Polynomial(other)
 		
-		Q = other.cast(float if self.type is int else self.type)
+		Q = other.cast(float) if self.type is int else other
 		R = self.copy()
 		if self.type is int: R = R.cast(float)
 		result = Polynomial(type=float if self.type is int else self.type)
@@ -384,5 +392,4 @@ def is_prime(f: Polynomial[int]) -> bool:
 
 if __name__=='__main__':
 	# ¹²³⁴⁵⁶⁷⁸⁹⁰
-	P = Polynomial(1, 2, 3, 4)
-	print(P/5)
+	print(Polynomial[float].type)

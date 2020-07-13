@@ -131,6 +131,11 @@ class __ModularRingMetaClass(RingMetaClass):
 	"""
 	The Z/nZ ring metaclass.
 	"""
+	def __getitem__(self, value: int):
+		class ModularRingSubclass(self):
+			modulus = value
+			__is_field = basicfunctions.is_prime(value)
+		return ModularRingSubclass
 	def __str__(self):
 		return f"ModularRing[{self.modulus}]"
 	def __repr__(self):
@@ -165,13 +170,8 @@ class ModularRing(Ring, metaclass=__ModularRingMetaClass):
 	modulus:int = None
 	__is_field:bool = False
 	
-	def __class_getitem__(cls, key:int):
-		cls.modulus = key
-		cls.__is_field = basicfunctions.is_prime(key)
-		return cls
-	
 	def __init__(self, value:int, modulus:int=None, __is_field:bool=None, **kwargs):
-		if kwargs: raise KeyError
+		if kwargs: raise ValueError
 		if modulus is not None: self.modulus=modulus; self.__is_field = basicfunctions.is_prime(self.modulus)
 		if __is_field is not None: self.__is_field=__is_field
 		if self.modulus is None: raise ValueError("no modulus supplied for modular group instance")
@@ -325,6 +325,6 @@ def test_field_axioms(field: Field):
 	assert(all(a*(b+c)==a*b+a*c for a in field for b in field for c in field))
 
 if __name__ == "__main__":
-	O, I, A, B = F4('O'), F4('I'), F4('A'), F4('B')
+	G = ModularRing[7](0)
 	
-	print(A*B)
+	print(ModularRing[5])
