@@ -270,7 +270,7 @@ class Polynomial(metaclass=__PolynomialMetaClass):
 		"""
 		return self//self.content()
 	
-	def solve(self) -> Tuple:
+	def solve(self, num_iterations=10, initial_guess=0) -> Tuple:
 		"""
 		returns the roots of the polynomial.
 		"""
@@ -278,11 +278,16 @@ class Polynomial(metaclass=__PolynomialMetaClass):
 			return ()
 		elif self.degree==1:
 			a, b = self[1], self[0]
-			return (-b/a)
+			return (-b/a,)
 		elif self.degree==2:
 			a, b, c = self[2], self[1], self[0]
 			return ((-b+(b**2-4*a*c)**0.5)/(2*a), (-b-(b**2-4*a*c)**0.5)/(2*a))
-		raise NotImplementedError #TODO: maybe use newton's method? but how do i get ALL roots?
+		else:
+			self_prime = self.derivative()
+			x = initial_guess
+			for _ in range(num_iterations): x -= self(x)/self_prime(x)
+			
+			raise NotImplementedError #TODO: maybe use newton's method? but how do i get ALL roots?
 
 
 def termwise_GCF(f: Polynomial) -> Polynomial:

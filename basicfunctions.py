@@ -1,11 +1,10 @@
 """
 assorted widely useful functions on basic types.
 """
-#TODO: maybe rewrite this whole library in C++ to make it super fast
+#TODO: maybe rewrite this whole library in C++ to make it super fast? idk
 
 from typing import List
 from functools import reduce
-from math import ceil, floor, log2, sqrt
 
 def gcd(a: int, b: int) -> int:
     # O(log(a)+log(b))
@@ -46,10 +45,8 @@ def is_perfect_power(n: int) -> bool:
 	is_perfect_power(69) -> False  
 	"""
 	# O(log(n))
-	for i in range(2, ceil(log2(n))+1): 
-		if not n ** (1 / i) % 1:
-			return True
-	return False
+	from math import ceil,log2,log
+	return any(any(i**k==n for k in range(2,ceil(log(n,i))+1))for i in range(2,ceil(log2(n))+1))
 
 def is_prime(n: int) -> bool:
 	"""
@@ -57,55 +54,49 @@ def is_prime(n: int) -> bool:
 	
 	Complexity: O(log(n)^7)
 	"""
+	from math import floor,ceil,sqrt,log2
 	
-	if n == 2: return True
-	
-	if n % 2 == 0: return False
+	if n==2: return True
+	if n%2==0: return False
 	
 	if is_perfect_power(n): return False
 	
 	def get_r(n: int) -> int:
 		l = log2(n)
-		max_k = floor(l*l)
-		max_r = max(3, ceil(l ** 5))
+		max_k, max_r = floor(l*l), max(3, ceil(l ** 5))
 		
 		next_r = True
+		r = 1
 		
-		r = 2
+		while(next_r and r<max_r):r,next_r=r+1,any(pow(n,k,r)in(0,1)for k in range(1,max_k))
 		
-		while (next_r and r < max_r):
-			next_r = False
-			
-			k = 1
-			
-			while not next_r and k < max_k:
-				next_r = pow(n, k, r) in (0, 1)
-				
-				k = k + 1
-			
-			r = r + 1
-		
-		return r - 1
+		return r-1
 	
 	r = get_r(n)
 	
 	if n <= 5690034 and n <= r: return True
 	
-	for a in range(r, 0, -1):
-		if gcd(a, n) != 1: return False
+	if any(gcd(a,n)!=1 for a in range(1,r+1)): return False
 	
-	bound = floor(sqrt(φ(r)) * log2(n))
+	bound = floor(sqrt(φ(r))*log2(n))
 	
-	for a in range(1, bound+1):
-		if pow(a, n, n) - a != 0: return False
+	if any(pow(a,n,n)-a!=0 for a in range(1,bound+1)): return False
 	
 	return True
 
+def sqrt_prime_check(n: int) -> bool:
+	"""
+	uses the naive square root check to determine if a number is prime.
+	"""
+	return not any(n%i==0 for i in range(2,int(__import__('math').sqrt(n)+1)))
+
 def φ(n: int) -> int:
+	"euler's totient function"
 	#O(nlog(n))
-	return sum(gcd(n, i) == 1 for i in range(1, n))
+	return sum(gcd(n, i)==1 for i in range(1, n))
 
 def binomial_coefficient(n: int, k: int) -> int:
+	"n choose k"
 	# O(k)
 	if k < 0: return 0
 	if k == 0: return 1

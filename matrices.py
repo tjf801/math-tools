@@ -312,14 +312,15 @@ class Matrix:
 	def eigenvalues(self) -> Tuple:
 		return self.characteristic_polynomial().solve()
 	
-	def eigenvectors(self) -> List:
-		raise NotImplementedError
+	def eigenvectors(self) -> Tuple:
+		for i in self.eigenvalues():
+			pass
 	
-	def eigenpairs(self):
+	def eigenpairs(self) -> Tuple[Tuple]:
 		raise NotImplementedError
 
 if __name__=='__main__':
 	
-	A = Matrix([[3, 2], [4, 1]])
+	A = Matrix([[0, -1], [1, 0]])
 	
-	print(A.characteristic_polynomial(), A.eigenvalues())
+	print(A.characteristic_polynomial(), A.eigenvalues(), A.eigenvectors())
