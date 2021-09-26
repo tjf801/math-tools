@@ -252,6 +252,8 @@ class Polynomial(metaclass=__PolynomialMetaClass):
 		return P
 	
 	def __call__(self, argument):
+		if isinstance(argument, __import__("matrices").Matrix):
+			raise NotImplementedError
 		return sum(c*argument**i for i, c in enumerate(self))
 	
 	def derivative(self):
@@ -270,7 +272,7 @@ class Polynomial(metaclass=__PolynomialMetaClass):
 		"""
 		return self//self.content()
 	
-	def solve(self, num_iterations=10, initial_guess=0) -> Tuple:
+	def solve(self, precicion: int = 13) -> Tuple:
 		"""
 		returns the roots of the polynomial.
 		"""
@@ -283,12 +285,40 @@ class Polynomial(metaclass=__PolynomialMetaClass):
 			a, b, c = self[2], self[1], self[0]
 			return ((-b+(b**2-4*a*c)**0.5)/(2*a), (-b-(b**2-4*a*c)**0.5)/(2*a))
 		else:
+			from math import log, ceil
+			from cmath import exp, pi
 			self_prime = self.derivative()
-			x = initial_guess
-			for _ in range(num_iterations): x -= self(x)/self_prime(x)
+			d = self.degree
 			
-			raise NotImplementedError #TODO: maybe use newton's method? but how do i get ALL roots?
-
+			R = 1+max(abs(self[i]/self.leading_coefficent) for i in range(self.degree))
+			
+			s = ceil(0.22632*log(d))
+			N = ceil(8.32547*d*log(d))
+			
+			starting_points = []
+			
+			for v in range(s):
+				rv = R*(((d-1)/d)**((2*v-1)/(4*s)))
+				for i in range(N):
+					starting_points.append(rv*exp((i*pi*2j)/N))
+			
+			roots = []
+			for point in starting_points:
+				x = point
+				prev_x = float("NaN")
+				while round(x.real, 13)!=round(prev_x.real, 13) or round(x.imag, 13)!=round(prev_x.imag, 13):
+					prev_x = x
+					x -= self(x)/self_prime(x)
+				if self(x)!=0: complex(round(x.real, precicion), round(x.imag, precicion))
+				roots.append(complex(round(x.real, precicion), round(x.imag, precicion))if round(x.imag, precicion)!=0 else round(x.real, precicion))
+			
+			return tuple(set(roots))
+	
+	@classmethod
+	def from_roots(cls, *roots):
+		P = cls(1)
+		for r in roots: P = P * cls(1, -r)
+		return P
 
 def termwise_GCF(f: Polynomial) -> Polynomial:
 	"""
@@ -301,11 +331,6 @@ def termwise_GCF(f: Polynomial) -> Polynomial:
 	GCF = Polynomial(type=f.type)
 	GCF[i] = f.content()
 	return GCF
-
-def polynomial_from_roots(roots: list) -> Polynomial:
-	P = Polynomial(1)
-	for r in roots: P = P * Polynomial(1, -r)
-	return P
 
 def PolynomialGCD(A: Polynomial, B: Polynomial) -> Polynomial:
 	"""
@@ -331,7 +356,8 @@ def rational_root_factor(f: Polynomial) -> Tuple[List[Polynomial], Polynomial]:
 	P = f.copy()
 	factors: List[Polynomial] = []
 	
-	if (gcf:=termwise_GCF(P)) != 1:
+	gcf=termwise_GCF(P)
+	if (gcf) != 1:
 		factors.append(gcf)
 		P//=gcf
 	
@@ -397,4 +423,6 @@ def is_prime(f: Polynomial[int]) -> bool:
 
 if __name__=='__main__':
 	# ¹²³⁴⁵⁶⁷⁸⁹⁰
-	print(Polynomial[float].type)
+	P = Polynomial.from_roots(-1, -1, -1)
+	print(P)
+	print(P.solve(precicion=4))
