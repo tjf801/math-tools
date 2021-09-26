@@ -5,14 +5,15 @@ assorted widely useful functions on basic types.
 
 from typing import List
 from functools import reduce
+import cmath
 
 def gcd(a: int, b: int) -> int:
-    # O(log(a)+log(b))
-    if a < 0 or b < 0:
-        raise ValueError("arguments to gcd() cannot be less than 0")
-    if a + b in [a, b]:
-        return a + b
-    return gcd(a % b, b) if a > b else gcd(a, b % a)
+	# O(log(a)+log(b))
+	while True:
+		if a==0: return b
+		if b==0: return a
+		if abs(a) > abs(b): a %= b
+		else: b %= a
 
 def gcd_list(l: List[int]) -> int:
 	return reduce(gcd, l)
@@ -74,9 +75,9 @@ def is_prime(n: int) -> bool:
 	
 	r = get_r(n)
 	
-	if n <= 5690034 and n <= r: return True
-	
 	if any(gcd(a,n)!=1 for a in range(1,r+1)): return False
+	
+	if n <= 5690034 and n <= r: return True
 	
 	bound = floor(sqrt(φ(r))*log2(n))
 	
@@ -102,5 +103,19 @@ def binomial_coefficient(n: int, k: int) -> int:
 	if k == 0: return 1
 	return int(reduce(lambda x, y: x * ((n+1-y)/y), range(1, k+1), 1))
 
+def FFT(P: list):
+	n = len(P)
+	if __import__("math").log2(n)!=round(__import__("math").log2(n)):
+		raise ValueError("args to FFT() need to be of dimension 2^n")
+	if n==1: return P
+	omega = cmath.exp(2j*cmath.pi/n)
+	P_even, P_odd = P[::2], P[1::2]
+	y_even, y_odd = FFT(P_even), FFT(P_odd)
+	y = [y_even[j] + omega**j * y_odd[j] for j in range(n//2)] + [y_even[j] - omega**j * y_odd[j] for j in range(n//2)]
+	return y
+
+def IFFT(y: list):
+	return [x.conjugate()/len(y) for x in FFT([x.conjugate() for x in y])]
+
 if __name__ == "__main__":
-	for x in range(10): print([binomial_coefficient(x, y) for y in range(10)])
+	print(FFT([0, 1, 1, 3]))
