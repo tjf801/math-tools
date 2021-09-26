@@ -10,9 +10,8 @@ class Matrix:
 	
 	def __class_getitem__(cls, key:type):
 		if type(key) is not type: raise TypeError("Parameters to generic types must be types. Got {thing}.".format(thing=key))
-		cls.type = key
-		raise NotImplementedError
-		return cls
+		class MatrixSubclass(Matrix): type=key
+		return MatrixSubclass
 	
 	@classmethod
 	def Identity(cls, size: int):
@@ -74,6 +73,9 @@ class Matrix:
 	
 	def __repr__(self) -> str:
 		return f"Matrix{'<' + self.type.__name__ + '>' if self.type is not Any else ''}({self.list})"
+	
+	def __str__(self) -> str:
+		return f"Matrix{'<' + self.type.__name__ + '>' if self.type is not Any else ''}({'['+', '.join('['+', '.join(str(e) for e in row)+']' for row in self.list)+']'})"
 	
 	def __list__(self) -> list:
 		return self.list
@@ -172,7 +174,7 @@ class Matrix:
 		"""computes the diagonal sum of a given matrix. also the sum of the eigenvalues of the matrix."""
 		return reduce(lambda x, y: x+y, [self[i,i] for i in range(min(self.dimensions))])
 	
-	def __row_echelon_determinant(self) -> Tuple:
+	def __row_echelon_determinant(self, print_row_ops:bool = False) -> tuple:
 		"""
 		returns the row-echelon form and determinant of the matrix.
 		"""
@@ -185,6 +187,7 @@ class Matrix:
 				for r in range(i, A.columns):
 					if A[i,r]!=0:
 						A.swap(i, r)
+						if print_row_ops: print(f"swap R{i+1} and r{r+1}")
 						d*=-1
 						break
 			
@@ -197,9 +200,11 @@ class Matrix:
 			if column is None: break
 			
 			d*=A[i, column]
+			if print_row_ops: print(f"R{i+1} /= {A[i, column]}")
 			A.list[i] = [num/A[i, column] for num in A.list[i]] # god i fucking hate floats
 			
 			for i2 in range(i+1, A.rows):
+				if print_row_ops: print(f"R{i2+1} += {-A[i2,column]} * R{i+1}")
 				A.add_multiply_two_rows(i2, i, -A[i2, column])
 		
 		try:
@@ -210,15 +215,17 @@ class Matrix:
 		
 		return A, A.diagonal_product()*d
 	
-	def row_echelon_form(self):
-		return self.__row_echelon_determinant()[0]
+	def row_echelon_form(self, print_row_ops:bool = False):
+		return self.__row_echelon_determinant(print_row_ops=print_row_ops)[0]
 	
-	def reduced_row_echelon_form(self):
+	def reduced_row_echelon_form(self, print_row_ops:bool = False):
 		"""returns the reduced row-echelon form of the given matrix."""
-		A = self.row_echelon_form()
+		A = self.row_echelon_form(print_row_ops=print_row_ops)
 		for i in range(min(A.dimensions)-2, -1, -1): # min(A.dimensions)
 			for j in range(min(A.dimensions)-1, i, -1):
-				if not A.is_zero_row(j): A.add_multiply_two_rows(i, j, -A[i, A.index_of_leading_term(j)])
+				if not A.is_zero_row(j):
+					if print_row_ops: print(f"R{i+1} += {-A[i, A.index_of_leading_term(j)]} * R{j+1}")
+					A.add_multiply_two_rows(i, j, -A[i, A.index_of_leading_term(j)])
 		try:
 			if all(A[i,j]==round(A[i,j]) for i in range(A.rows) for j in range(A.columns)):
 				for i in range(A.rows):
@@ -281,11 +288,17 @@ class Matrix:
 	
 	def transpose(self):
 		"""returns the transpose matrix of given matrix."""
-		return Matrix([[self[j,i] for j in range(self.columns)] for i in range(self.rows)])
+		return Matrix([[self[j,i] for j in range(self.rows)] for i in range(self.columns)])
+	
+	def __neg__(self):
+		return -1*self #TODO: make this better
 	
 	def __add__(self, other):
 		if self.dimensions != other.dimensions: raise ValueError(f"matrices do not have same dimensions [{self.dimensions} and {other.dimensions}]")
 		return Matrix([[self[i,j]+other[i,j] for j in range(self.columns)] for i in range(self.rows)], type=self.type if self.type is other.type else Any)
+	def __radd__(self, other):
+		if (other==0): return self.copy()
+		else: return NotImplemented
 	
 	def __sub__(self, other):
 		if self.dimensions != other.dimensions: raise ValueError(f"matrices do not have same dimensions [{self.dimensions} and {other.dimensions}]")
@@ -309,18 +322,38 @@ class Matrix:
 	def characteristic_polynomial(self) -> Polynomial:
 		return (self.cast(Polynomial[Fraction])-Matrix.Identity(self.dimensions[0])*Polynomial(1,0)).determinant()
 	
-	def eigenvalues(self) -> Tuple:
+	def eigenvalues(self) -> tuple:
 		return self.characteristic_polynomial().solve()
 	
-	def eigenvectors(self) -> Tuple:
-		for i in self.eigenvalues():
-			pass
-	
-	def eigenpairs(self) -> Tuple[Tuple]:
+	def eigenvectors(self) -> tuple:
 		raise NotImplementedError
+	
+	def eigenpairs(self) -> Tuple[tuple]:
+		from basicfunctions import gcd_list
+		d = self.dimensions[0]
+		pairs = []
+		for i in self.eigenvalues():
+			if (self-i*Matrix.Identity(d)).determinant()!=0: raise Exception("TODO: this is VERY numerically unstable")
+			eigenvector = -(self-i*Matrix.Identity(d)).reduced_row_echelon_form()[:d-1,d-1]
+			eigenvector = eigenvector.vertical_augment(Matrix([[1]])) # adds the 'z' value
+			eigenvector *= 1/gcd_list(eigenvector.transpose().list[0]) # makes it the simplest ratio (thing idk)
+			pairs.append((i, eigenvector))
+		return tuple(pairs)
 
 if __name__=='__main__':
+	from random import randint
+	A = Matrix([[1,3,4,5],[2,7,5,4],[1,2,3,4]])
+	#A = Matrix([[randint(-10, 10) for _ in range(3)] for _ in range(3)])
+	#A = Matrix([[4, -8], [6, 3]])
 	
-	A = Matrix([[0, -1], [1, 0]])
+	for i in range(A.rows):
+			#get row with nonzero i-th entry and swap it with row i
+			if i < A.columns and A[i,i]==0:
+				for r in range(i, A.columns):
+					if A[i,r]!=0:
+						A.swap(i, r)
+						print(f"swap R{i+1} and r{r+1}")
+						break
 	
-	print(A.characteristic_polynomial(), A.eigenvalues(), A.eigenvectors())
+	print(A)
+	#print(A.reduced_row_echelon_form(print_row_ops=True))
